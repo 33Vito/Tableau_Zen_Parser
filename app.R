@@ -50,7 +50,7 @@ ui <- fluidPage(
         # )
       ),
       
-      actionButton("input_demo", "demo", width = "70px"),
+      actionButton("input_demo", "Load demo workbook"),
       # div(style = "display: inline-block;vertical-align:top; padding-top: 20px;",
       #     actionButton("input_run", "run", width = "70px")),
       # div(style = "display: inline-block;vertical-align:top; padding-top: 20px;",
@@ -96,7 +96,7 @@ ui <- fluidPage(
         DT::dataTableOutput("excel_src_path")
       ),
       tabPanel(
-        "Calculated field visualisation",
+        "Variable dependency visualisation",
         br(),
         p("purple: raw variables", style = "color:#AD8BC9", 
           span("orange: parameters", 
