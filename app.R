@@ -93,7 +93,9 @@ ui <- fluidPage(
         h2("Data source"),
         DT::dataTableOutput("data_src_tbl"),
         h2("Excel file path"),
-        DT::dataTableOutput("excel_src_path")
+        DT::dataTableOutput("excel_src_path"), 
+        h2("Csv file path"),
+        DT::dataTableOutput("csv_src_path")
       ),
       tabPanel(
         "Variable dependency visualisation",
@@ -119,16 +121,29 @@ ui <- fluidPage(
 
 #---------------------------------Define server logic---------------------------------
 server <- shinyServer(function(input, output) {
+  ##---------------------Functions------------------------------------------
+  add_back_slash <- function(string) {
+    string %>%
+      str_replace_all("\\[", "\\\\\\[") %>%
+      str_replace_all("\\]", "\\\\\\]") %>%
+      str_replace_all("\\(", "\\\\\\(") %>%
+      str_replace_all("\\)", "\\\\\\)")
+  }
+  
+  put_in_sq_bracket <- function(string) {
+    paste0("[", string, "]")
+  }
+  
   ##--------------------Load workbook----------------------------------------
-  tableau_xml <- reactive({
-    if (!input$input_demo)
-      req(input$input_twb)
+  tableau_xml <- eventReactive(input$input_demo | length(input$input_twb) > 0, {
+    if (!input$input_demo) req(input$input_twb)
     
-    inFile <- input$input_twb
-    
-    if (input$input_demo)
-      dd <-
-      read_xml("Ward Population Pyramid - Quinary Age.twb")
+    if (length(input$input_twb) > 0) {
+      inFile <- input$input_twb
+    }
+
+    if (input$input_demo & length(input$input_twb) == 0)
+      dd <- read_xml("Ward Population Pyramid - Quinary Age.twb")
     else
       dd <- read_xml(inFile$datapath)
     
@@ -182,6 +197,35 @@ server <- shinyServer(function(input, output) {
                   ))
   })
   
+  output$csv_src_path <- DT::renderDataTable({
+    if (!input$input_demo)
+      req(input$input_twb)
+    
+    csv_path <- bind_cols(
+      xml_find_all(
+        tableau_xml(),
+        "//connection[contains(@class, 'textscan')]"
+      ) %>%
+        xml_attrs() %>%
+        do.call(bind_rows, .)
+      # 
+      # xml_find_all(
+      #   tableau_xml(),
+      #   "//named-connection[contains(@class, 'textscan')]//connection"
+      # ) %>%
+      #   xml_attrs() %>%
+      #   do.call(bind_rows, .)
+    )
+    
+    if (length(csv_path) > 0)
+      DT::datatable(csv_path,
+                    extensions = 'Buttons',
+                    options = list(
+                      dom = 'Bfrtip',
+                      buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+                    ))
+  })
+  
   ##--------------------Get calculated field----------------------------------------
   all_para <- reactive({
     xml_find_all(tableau_xml(),
@@ -228,28 +272,6 @@ server <- shinyServer(function(input, output) {
     if (!input$INCLUDE_PARA)
       all_calc <- all_calc %>% filter(!(caption %in% all_para()))
     
-    return(all_calc)
-  })
-  
-  ##--------------------Generate visNetwork graph----------------------------
-  output$visNetwork_output <- renderVisNetwork({
-    
-    all_calc <- all_calc()
-    all_para <- all_para()
-    all_var_raw <- all_var_raw()
-    
-    add_back_slash <- function(string) {
-      string %>%
-        str_replace_all("\\[", "\\\\\\[") %>%
-        str_replace_all("\\]", "\\\\\\]") %>%
-        str_replace_all("\\(", "\\\\\\(") %>%
-        str_replace_all("\\)", "\\\\\\)")
-    }
-    
-    put_in_sq_bracket <- function(string) {
-      paste0("[", string, "]")
-    }
-    
     for (i in 1:nrow(all_calc)) {
       # print(i)
       all_calc$formula <- str_replace_all(
@@ -260,6 +282,16 @@ server <- shinyServer(function(input, output) {
       )
     }
     
+    return(all_calc)
+  })
+  
+  ##--------------------Generate visNetwork graph----------------------------
+  output$visNetwork_output <- renderVisNetwork({
+    
+    all_calc <- all_calc()
+    all_para <- all_para()
+    all_var_raw <- all_var_raw()
+
     all_calc_network <-
       tibble(
         formula = rep(all_calc$formula, each = nrow(all_calc)),
@@ -393,7 +425,7 @@ server <- shinyServer(function(input, output) {
                         dom = 'Bfrtip',
                         buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
                       ))
-    })
+    }, server = FALSE)
 })
 
 # Run the application
