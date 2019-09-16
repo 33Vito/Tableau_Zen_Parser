@@ -9,6 +9,7 @@ library(tidyverse)
 library(rvest)
 library(xml2)
 library(visNetwork)
+library(htmlwidgets)
 
 #---------------------------------Define UI for application---------------------------------
 ui <- fluidPage(
@@ -83,7 +84,9 @@ ui <- fluidPage(
                                  "layout_with_fr", 
                                  "layout_with_kk", 
                                  "layout_with_lgl", 
-                                 "normalize"))
+                                 "normalize")), 
+      
+      downloadLink('downloadHTML', 'downloadVisNetworkHTML')
     ),
     
     # Show visNetwork output
@@ -93,7 +96,9 @@ ui <- fluidPage(
         h2("Data source"),
         DT::dataTableOutput("data_src_tbl"),
         h2("Excel file path"),
-        DT::dataTableOutput("excel_src_path")
+        DT::dataTableOutput("excel_src_path"), 
+        h2("Csv file path"),
+        DT::dataTableOutput("csv_src_path")
       ),
       tabPanel(
         "Variable dependency visualisation",
@@ -195,6 +200,35 @@ server <- shinyServer(function(input, output) {
                   ))
   })
   
+  output$csv_src_path <- DT::renderDataTable({
+    if (!input$input_demo)
+      req(input$input_twb)
+    
+    csv_path <- bind_cols(
+      xml_find_all(
+        tableau_xml(),
+        "//connection[contains(@class, 'textscan')]"
+      ) %>%
+        xml_attrs() %>%
+        do.call(bind_rows, .)
+      # 
+      # xml_find_all(
+      #   tableau_xml(),
+      #   "//named-connection[contains(@class, 'textscan')]//connection"
+      # ) %>%
+      #   xml_attrs() %>%
+      #   do.call(bind_rows, .)
+    )
+    
+    if (length(csv_path) > 0)
+      DT::datatable(csv_path,
+                    extensions = 'Buttons',
+                    options = list(
+                      dom = 'Bfrtip',
+                      buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+                    ))
+  })
+  
   ##--------------------Get calculated field----------------------------------------
   all_para <- reactive({
     xml_find_all(tableau_xml(),
@@ -256,6 +290,10 @@ server <- shinyServer(function(input, output) {
   
   ##--------------------Generate visNetwork graph----------------------------
   output$visNetwork_output <- renderVisNetwork({
+    vis_output()
+  })
+  
+  vis_output <- reactive({
     
     all_calc <- all_calc()
     all_para <- all_para()
@@ -328,7 +366,8 @@ server <- shinyServer(function(input, output) {
     ) %>%
       mutate(
         value = replace_na(value, .5),
-        value = ifelse(shape == "box", 2.5 * value, value),
+        value = ifelse(shape == "circle", 1 * value, value),
+        value = ifelse(shape == "box", 2 * value, value),
         value = ifelse(shape == "diamond", .8 * value, value),
         value = ifelse(shape == "ellipse", 2 * value, value),
         value = ifelse(shape == "square", 1.1 * value, value),
@@ -394,7 +433,19 @@ server <- shinyServer(function(input, output) {
                         dom = 'Bfrtip',
                         buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
                       ))
-    })
+    }, server = FALSE)
+
+#------------------------downlaod HTML----------------------------------------
+
+output$downloadHTML <- downloadHandler(
+  filename = function() {
+    paste0('Tableau_visNetwork_', Sys.Date(), '.html')
+  },
+  content = function(con) {
+    saveWidget(vis_output(), con)
+  }
+)
+  
 })
 
 # Run the application
