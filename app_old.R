@@ -9,8 +9,6 @@ library(tidyverse)
 library(rvest)
 library(xml2)
 library(visNetwork)
-library(htmlwidgets)
-library(igraph)
 
 #---------------------------------Define UI for application---------------------------------
 ui <- fluidPage(
@@ -85,9 +83,7 @@ ui <- fluidPage(
                                  "layout_with_fr", 
                                  "layout_with_kk", 
                                  "layout_with_lgl", 
-                                 "normalize")), 
-      
-      downloadLink('downloadHTML', 'downloadVisNetworkHTML')
+                                 "normalize"))
     ),
     
     # Show visNetwork output
@@ -291,10 +287,6 @@ server <- shinyServer(function(input, output) {
   
   ##--------------------Generate visNetwork graph----------------------------
   output$visNetwork_output <- renderVisNetwork({
-    vis_output()
-  })
-  
-  vis_output <- reactive({
     
     all_calc <- all_calc()
     all_para <- all_para()
@@ -367,8 +359,7 @@ server <- shinyServer(function(input, output) {
     ) %>%
       mutate(
         value = replace_na(value, .5),
-        value = ifelse(shape == "circle", 1 * value, value),
-        value = ifelse(shape == "box", 2 * value, value),
+        value = ifelse(shape == "box", 2.5 * value, value),
         value = ifelse(shape == "diamond", .8 * value, value),
         value = ifelse(shape == "ellipse", 2 * value, value),
         value = ifelse(shape == "square", 1.1 * value, value),
@@ -435,18 +426,6 @@ server <- shinyServer(function(input, output) {
                         buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
                       ))
     }, server = FALSE)
-
-#------------------------downlaod HTML----------------------------------------
-
-output$downloadHTML <- downloadHandler(
-  filename = function() {
-    paste0('Tableau_visNetwork_', Sys.Date(), '.html')
-  },
-  content = function(con) {
-    saveWidget(vis_output(), con)
-  }
-)
-  
 })
 
 # Run the application
