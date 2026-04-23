@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tableau Zen Parser (JS)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/vis-network@9.1.9/styles/vis-network.min.css"
+    />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>Tableau Zen Parser</h1>
+          <p class="subtitle">Client-side parser for Tableau .twb files</p>
+        </div>
+        <div class="actions">
+          <button id="demoBtn" type="button">Load demo workbook</button>
+          <label class="file-input">
+            <input id="fileInput" type="file" accept=".twb" />
+            <span>Upload .twb</span>
+          </label>
+        </div>
+      </header>
+
+      <section class="controls">
+        <div class="control">
+          <label for="randomSeed">Random seed</label>
+          <input id="randomSeed" type="number" value="3" />
+        </div>
+        <div class="control">
+          <label><input id="includeRaw" type="checkbox" checked /> Include raw variables</label>
+        </div>
+        <div class="control">
+          <label><input id="includeParams" type="checkbox" checked /> Include parameters</label>
+        </div>
+        <div class="control">
+          <label><input id="usePhysics" type="checkbox" checked /> Use physics layout</label>
+        </div>
+        <div class="control">
+          <label for="focusSelect">Focus field</label>
+          <select id="focusSelect">
+            <option value="">(none)</option>
+          </select>
+        </div>
+        <div class="control">
+          <button id="resetView" type="button">Reset view</button>
+        </div>
+      </section>
+
+      <section class="status" id="status"></section>
+
+      <section class="panel">
+        <h2>Variable dependency visualisation</h2>
+        <div class="legend">
+          <span class="legend-item raw">Raw variables</span>
+          <span class="legend-item param">Parameters</span>
+          <span class="legend-item calc-measure">Calculated (measure)</span>
+          <span class="legend-item calc-dim">Calculated (dimension)</span>
+        </div>
+        <div id="network"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Data source</h2>
+        <div class="table-wrap">
+          <table id="dataSourceTable"></table>
+        </div>
+        <h2>Excel file path</h2>
+        <div class="table-wrap">
+          <table id="excelPathTable"></table>
+        </div>
+        <h2>Csv file path</h2>
+        <div class="table-wrap">
+          <table id="csvPathTable"></table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Calculated field table</h2>
+        <div class="table-wrap">
+          <table id="calcTable"></table>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
